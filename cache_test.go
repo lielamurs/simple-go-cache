@@ -9,6 +9,7 @@ import (
 
 func TestCache(t *testing.T) {
 	cache := New(time.Duration(time.Second))
+	defer cache.Close()
 
 	tests := []struct {
 		name        string
@@ -62,6 +63,7 @@ func TestCache(t *testing.T) {
 
 func TestCacheDelete(t *testing.T) {
 	cache := New(time.Duration(time.Second))
+	defer cache.Close()
 
 	givenKey, givenEntry := "deletable", "Deletable entry"
 	cache.Set(givenKey, givenEntry, time.Minute)
@@ -84,11 +86,11 @@ func TestCacheDelete(t *testing.T) {
 	if diff := cmp.Diff(nil, gotEntry); diff != "" {
 		t.Errorf("outcome mismatch (-want +got):\n%s", diff)
 	}
-
 }
 
 func TestCleanup(t *testing.T) {
 	cache := New(time.Duration(time.Millisecond))
+	defer cache.Close()
 
 	givenKey, givenEntry := "cleanup", "cleanup entry"
 	cache.Set(givenKey, givenEntry, time.Second)
