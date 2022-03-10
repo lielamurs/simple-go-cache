@@ -7,7 +7,7 @@ import (
 )
 
 func BenchmarkCache(b *testing.B) {
-	cache := New(time.Second)
+	cache := New(time.Second, 50)
 	defer cache.Close()
 
 	for n := 0; n < b.N; n++ {
