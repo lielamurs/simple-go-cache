@@ -9,30 +9,42 @@ type MemoryCache interface {
 	Get(key string) (entry interface{}, found bool)
 	Set(key string, data interface{}, ttl time.Duration)
 	Delete(key string)
+	Close()
 }
 
 type Cache struct {
 	sync.RWMutex
-	ct time.Duration
-	m  map[string]*Item
+	m          map[string]*Item
+	ticker     *time.Ticker
+	tickerStop chan bool
 }
 
 func New(cleanupInterval time.Duration) *Cache {
+	interval := cleanupInterval
+	if interval < time.Second {
+		interval = time.Second
+	}
 	cache := &Cache{
-		ct: cleanupInterval,
-		m:  make(map[string]*Item),
+		m:          make(map[string]*Item),
+		ticker:     time.NewTicker(interval),
+		tickerStop: make(chan bool),
 	}
 	cache.startCleanupTimer()
 	return cache
 }
 
+func (c *Cache) Close() {
+	c.ticker.Stop()
+	c.tickerStop <- true
+}
+
 func (c *Cache) Get(key string) (entry interface{}, found bool) {
 	c.RLock()
 	defer c.RUnlock()
-	if _, ok := c.m[key]; !ok {
+	e, ok := c.m[key]
+	if !ok {
 		return nil, false
 	}
-	e := c.m[key]
 	return e.data, true
 }
 
@@ -57,17 +69,14 @@ func (c *Cache) cleanup() {
 }
 
 func (c *Cache) startCleanupTimer() {
-	interval := c.ct
-	if interval < time.Second {
-		interval = time.Second
-	}
-
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
 	go (func() {
-		for range ticker.C {
-			c.cleanup()
+		for {
+			select {
+			case <-c.tickerStop:
+				return
+			case <-c.ticker.C:
+				c.cleanup()
+			}
 		}
 	})()
 }
