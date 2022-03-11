@@ -17,18 +17,20 @@ type MemoryCache interface {
 type Cache struct {
 	sync.RWMutex
 	m          map[string]*Item
+	mapSize    int
 	sizeLimit  int
 	ticker     *time.Ticker
 	tickerStop chan bool
 }
 
-func New(cleanupInterval time.Duration, sizeLimit int) *Cache {
+func New(cleanupInterval time.Duration, sizeLimit int, mapSize int) *Cache {
 	interval := cleanupInterval
 	if interval < time.Second {
 		interval = time.Second
 	}
 	cache := &Cache{
 		m:          make(map[string]*Item),
+		mapSize:    mapSize,
 		sizeLimit:  sizeLimit,
 		ticker:     time.NewTicker(interval),
 		tickerStop: make(chan bool),
@@ -55,7 +57,7 @@ func (c *Cache) Get(key string) (entry interface{}, found bool) {
 func (c *Cache) Set(key string, data interface{}, ttl time.Duration) {
 	c.Lock()
 	defer c.Unlock()
-	if size.Of(data) <= c.sizeLimit {
+	if len(c.m) < c.mapSize && size.Of(data) <= c.sizeLimit {
 		c.m[key] = &Item{data: data, ttl: time.Now().Add(ttl)}
 	}
 }

@@ -8,7 +8,7 @@ import (
 )
 
 func TestCache(t *testing.T) {
-	cache := New(time.Duration(time.Second), 50)
+	cache := New(time.Duration(time.Second), 50, 50)
 	defer cache.Close()
 
 	tests := []struct {
@@ -71,7 +71,7 @@ func TestCache(t *testing.T) {
 }
 
 func TestCacheDelete(t *testing.T) {
-	cache := New(time.Duration(time.Second), 50)
+	cache := New(time.Duration(time.Second), 50, 50)
 	defer cache.Close()
 
 	givenKey, givenEntry := "deletable", "Deletable entry"
@@ -98,7 +98,7 @@ func TestCacheDelete(t *testing.T) {
 }
 
 func TestCleanup(t *testing.T) {
-	cache := New(time.Duration(time.Millisecond), 50)
+	cache := New(time.Duration(time.Millisecond), 50, 50)
 	defer cache.Close()
 
 	givenKey, givenEntry := "cleanup", "cleanup entry"
@@ -120,6 +120,39 @@ func TestCleanup(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(nil, gotEntry); diff != "" {
+		t.Errorf("outcome mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestCacheLimit(t *testing.T) {
+	cache := New(time.Duration(time.Second), 50, 3)
+	defer cache.Close()
+
+	givenKey, givenEntry := "debatable", "Debatable entry"
+	cache.Set(givenKey, givenEntry, time.Second)
+	cache.Set("givenKey1", givenEntry, time.Second)
+	cache.Set("givenKey2", givenEntry, time.Second)
+	cache.Set("givenKey3", givenEntry, time.Second)
+
+	gotEntry, gotOutcome := cache.Get(givenKey)
+	if diff := cmp.Diff(true, gotOutcome); diff != "" {
+		t.Errorf("outcome mismatch (-want +got):\n%s", diff)
+	}
+
+	if diff := cmp.Diff(givenEntry, gotEntry); diff != "" {
+		t.Errorf("outcome mismatch (-want +got):\n%s", diff)
+	}
+
+	_, gotOutcome = cache.Get("givenKey3")
+	if diff := cmp.Diff(false, gotOutcome); diff != "" {
+		t.Errorf("outcome mismatch (-want +got):\n%s", diff)
+	}
+
+	time.Sleep(time.Second * 2)
+	cache.Set("givenKey4", givenEntry, time.Second)
+
+	_, gotOutcome = cache.Get("givenKey4")
+	if diff := cmp.Diff(true, gotOutcome); diff != "" {
 		t.Errorf("outcome mismatch (-want +got):\n%s", diff)
 	}
 }
