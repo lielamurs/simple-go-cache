@@ -66,19 +66,21 @@ func (c *Cache) Set(key string, data interface{}, ttl time.Duration) {
 }
 
 func (c *Cache) Delete(key string) {
+	c.Lock()
+	defer c.Unlock()
+	c.removeItemSize(c.m[key])
 	delete(c.m, key)
 }
 
 func (c *Cache) cleanup() {
 	c.Lock()
+	defer c.Unlock()
 	for key, item := range c.m {
 		if item.expired() {
-			itemSize := uint64(size.Of(item))
+			c.removeItemSize(c.m[key])
 			delete(c.m, key)
-			c.mapSize -= itemSize
 		}
 	}
-	c.Unlock()
 }
 
 func (c *Cache) startCleanupTimer() {
@@ -92,4 +94,9 @@ func (c *Cache) startCleanupTimer() {
 			}
 		}
 	})()
+}
+
+func (c *Cache) removeItemSize(item *Item) {
+	itemSize := uint64(size.Of(item))
+	c.mapSize -= itemSize
 }
