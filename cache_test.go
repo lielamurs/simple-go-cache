@@ -8,7 +8,7 @@ import (
 )
 
 func TestCache(t *testing.T) {
-	cache := New(time.Duration(time.Second), 50, 50)
+	cache := New(time.Duration(time.Second), 5000)
 	defer cache.Close()
 
 	tests := []struct {
@@ -28,15 +28,6 @@ func TestCache(t *testing.T) {
 			setEntry:    true,
 			wantEntry:   "1 minute entry",
 			wantOutcome: true,
-		},
-		{
-			name:        "Test entry over size limit",
-			givenKey:    "oversized",
-			givenEntry:  "1 minute entry exceeding the size limit of set cache memory limit",
-			givenTTL:    time.Minute,
-			setEntry:    true,
-			wantEntry:   nil,
-			wantOutcome: false,
 		},
 		{
 			name:        "Test unset entry",
@@ -71,7 +62,7 @@ func TestCache(t *testing.T) {
 }
 
 func TestCacheDelete(t *testing.T) {
-	cache := New(time.Duration(time.Second), 50, 50)
+	cache := New(time.Duration(time.Second), 5000)
 	defer cache.Close()
 
 	givenKey, givenEntry := "deletable", "Deletable entry"
@@ -98,7 +89,7 @@ func TestCacheDelete(t *testing.T) {
 }
 
 func TestCleanup(t *testing.T) {
-	cache := New(time.Duration(time.Millisecond), 50, 50)
+	cache := New(time.Duration(time.Millisecond), 5000)
 	defer cache.Close()
 
 	givenKey, givenEntry := "cleanup", "cleanup entry"
@@ -125,7 +116,7 @@ func TestCleanup(t *testing.T) {
 }
 
 func TestCacheLimit(t *testing.T) {
-	cache := New(time.Duration(time.Second), 50, 3)
+	cache := New(time.Duration(time.Second), 500)
 	defer cache.Close()
 
 	givenKey, givenEntry := "debatable", "Debatable entry"
