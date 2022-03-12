@@ -22,6 +22,8 @@ type Cache struct {
 	tickerStop         chan bool
 }
 
+// Return a new cache with a cleanup interval and size limit in bytes.
+// Automatic cleanup is started to delete expired items.
 func New(cleanupInterval time.Duration, sizeLimit uint64) *Cache {
 	interval := cleanupInterval
 	if interval < time.Second {
@@ -38,11 +40,13 @@ func New(cleanupInterval time.Duration, sizeLimit uint64) *Cache {
 	return cache
 }
 
+// Stop the cleanup process
 func (c *Cache) Close() {
 	c.ticker.Stop()
 	c.tickerStop <- true
 }
 
+// Get returns a cache entry for the provided key.
 func (c *Cache) Get(key string) (entry interface{}, found bool) {
 	c.RLock()
 	defer c.RUnlock()
@@ -53,6 +57,8 @@ func (c *Cache) Get(key string) (entry interface{}, found bool) {
 	return e.data, true
 }
 
+// Set adds new item to cache with a ttl duration. If adding the item
+// causes cache to exceed defined memory limit no action is performed.
 func (c *Cache) Set(key string, data interface{}, ttl time.Duration) {
 	c.Lock()
 	defer c.Unlock()
@@ -65,6 +71,7 @@ func (c *Cache) Set(key string, data interface{}, ttl time.Duration) {
 	}
 }
 
+// Delete removes item from cache.
 func (c *Cache) Delete(key string) {
 	c.Lock()
 	defer c.Unlock()
@@ -72,6 +79,7 @@ func (c *Cache) Delete(key string) {
 	delete(c.m, key)
 }
 
+// Cleanup cecks cached items and removes expired ones.
 func (c *Cache) cleanup() {
 	c.Lock()
 	defer c.Unlock()
@@ -83,6 +91,7 @@ func (c *Cache) cleanup() {
 	}
 }
 
+// Start the cleanup timer
 func (c *Cache) startCleanupTimer() {
 	go (func() {
 		for {
@@ -96,6 +105,7 @@ func (c *Cache) startCleanupTimer() {
 	})()
 }
 
+// Removes item size from map size
 func (c *Cache) removeItemSize(item *Item) {
 	itemSize := uint64(size.Of(item))
 	c.mapSize -= itemSize
